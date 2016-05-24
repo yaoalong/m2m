@@ -1,14 +1,16 @@
 package lab.mars.m2m.protocol.enumeration;
 
+import javax.xml.bind.annotation.XmlEnum;
 import javax.xml.bind.annotation.XmlEnumValue;
 
 /**
- * Author:yaoalong.
- * Date:2016/5/24.
- * Email:yaoalong@foxmail.com
+ * Created by haixiao on 14/12/14.
+ * according to_servAddr TS0004 v0.8.0<br>
+ * see $6.6.3.2<br>
+ * according to_servAddr TS0009 v0.6.0<br>
  */
-public enum m2m_responseStatusCodeType
-{
+@XmlEnum(Integer.class)
+public enum m2m_responseStatusCodeType {
     @XmlEnumValue("1")Success,
     @XmlEnumValue("2")Accepted,
     @XmlEnumValue("3")Location_info_not_authorized,
@@ -41,9 +43,51 @@ public enum m2m_responseStatusCodeType
     @XmlEnumValue("30")CMDH_rules_non_compliant,
     @XmlEnumValue("31")Target_is_not_subscribable,
     @XmlEnumValue("32")Cannot_initiate_subscription_verification,
-    @XmlEnumValue("33")Subscription_verification_failed;
+    @XmlEnumValue("33")Subscription_verification_failed,
+    @XmlEnumValue("34")Max_number_of_member_exceeded,
+    @XmlEnumValue("35")Not_allowed,
+    @XmlEnumValue("36")MEMBER_TYPE_INCONSISTENT;
 
 
+//    @XmlEnumValue("6001")Location_info_not_authorized,
+//    @XmlEnumValue("5001")Unsupported_resource,
+//    @XmlEnumValue("5002")Unsupported_attribute,
+//    @XmlEnumValue("5003")Target_not_reachable,
+//    @XmlEnumValue("5004")Cannot_forward_other_reason_TBD,
+//    @XmlEnumValue("5005")No_privilege,
+//    @XmlEnumValue("5006")Already_exists,
+//    @XmlEnumValue("4007")Create_error_missing_mandatory_parameter,
+//    @XmlEnumValue("5009")Retrieve_error_does_not_exist,
+//    @XmlEnumValue("4012")Update_error_unacceptable_contents,
+//    @XmlEnumValue("5015")Create_delivery_not_able_to_take_on_responsibility,
+//    @XmlEnumValue("6002")group_request_identifier_exists,
+    //    @XmlEnumValue("5004")access_denied,
+//    @XmlEnumValue("6003")External_object_not_reachable,
+//    @XmlEnumValue("6004")Create_mgmtObj_memory_shortage,
+//    @XmlEnumValue("6005")External_object_not_found,
+//    @XmlEnumValue("6006")Cancel_execInstance_not_cancellable,
+//    @XmlEnumValue("6007")Cancel_execInstance_already_complete,
+//    @XmlEnumValue("6008")Delete_execInstance_not_cancellable,
+//    @XmlEnumValue("6009")Delete_execInstance_already_complete,
+//    @XmlEnumValue("5035")Retrieve_CSEBase_format_error,
+//    @XmlEnumValue("5036")CMDH_rules_non_compliant,
+//    @XmlEnumValue("5037")Target_is_not_subscribable,
+//    @XmlEnumValue("5038")Cannot_initiate_subscription_verification,
+//    @XmlEnumValue("5039")Subscription_verification_failed_Originator_ID,
+    //    @XmlEnumValue("5004") Subscription_verification_failed_creator,
+//    @XmlEnumValue("6010")Max_number_of_member_exceeded,
+//    @XmlEnumValue("6011")Member_type_inconsistent,
+//    @XmlEnumValue("6022")Management_session_cannot_be_established,
+//    @XmlEnumValue("6003")Management_session_establishment_timeout,
+//    @XmlEnumValue("5004")Create_mgmtCmd_invalid_cmdType,
+//    @XmlEnumValue("5004")Create_mgmtCmd_invalid_arguments,
+//    @XmlEnumValue("5004")Create_mgmtCmd_insufficient_arguments,
+//    @XmlEnumValue("5004")MgmtCmd_conversion_error,
+//    @XmlEnumValue("5004")Delete_mgmtCmd_execInstance_cancellation_error,
+//    @XmlEnumValue("5004")Cancel_execInstance_cancellation_error,
+//    @XmlEnumValue("5004")Delete_execInstance_cancellation_failed
+    
+    //FIX refactor this, too verbose!
     public static int encode(m2m_responseStatusCodeType c) {
         switch (c) {
             case Success:
@@ -115,7 +159,7 @@ public enum m2m_responseStatusCodeType
         }
         return 0;
     }
-
+    
     public static m2m_responseStatusCodeType decode(String rsc) {
         switch (rsc) {
             case "1": return Success;

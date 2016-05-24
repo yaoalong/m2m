@@ -5,34 +5,35 @@ import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
-import lab.mars.m2m.model.*;
-import lab.mars.m2m.protocol.enumeration.m2m_responseStatusCodeType;
+import lab.mars.m2m.protocol.common.m2m_ID;
+import lab.mars.m2m.protocol.common.m2m_attribute;
+import lab.mars.m2m.protocol.common.m2m_childResourceRef;
+import lab.mars.m2m.protocol.common.m2m_filterCriteria;
+import lab.mars.m2m.protocol.enumeration.*;
+import lab.mars.m2m.protocol.primitive.m2m_primitiveContentType;
+import lab.mars.m2m.protocol.primitive.m2m_req;
+import lab.mars.m2m.protocol.primitive.m2m_rsp;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+import java.net.URI;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpMethod.*;
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
-import static lab.mars.m2m.model.m2m_operation.*;
+import static lab.mars.m2m.protocol.enumeration.m2m_operation.*;
 
-/**
- * Author:yaoalong.
- * Date:2016/5/24.
- * Email:yaoalong@foxmail.com
- */
 public class M2MHttpBindings {
+
     public static final String X_M2M_RI = "X-M2M-RI";
     public static final String X_M2M_OT = "X-M2M-OT";
     public static final String X_M2M_RST = "X-M2M-RST";
@@ -77,6 +78,22 @@ public class M2MHttpBindings {
         jc = _jc;
     }
 
+    public static HttpRequest makeClientRequest(URI uri, m2m_req req) {
+        ByteBufOutputStream out = new ByteBufOutputStream(Unpooled.buffer());
+        if (req.pc != null)
+            try {
+                marshaller.get().marshal(req.pc, out);
+            } catch (JAXBException e) {
+                e.printStackTrace();
+            }
+        DefaultFullHttpRequest request = new DefaultFullHttpRequest(HTTP_1_1, method(req.op), uri.getRawPath(), out.buffer());
+        request.headers().set(CONTENT_TYPE, "text/plain; charset=UTF-8");
+        request.headers().set(CONTENT_LENGTH, Integer.toString(request.content().readableBytes()));
+        if (req.rqi != null) request.headers().set(X_M2M_RI, req.rqi.value);
+        if (req.fr != null) request.headers().set(FROM, req.fr.value);
+        return request;
+    }
+
     public static FullHttpResponse encodeResponse(m2m_rsp resp) {
 
         HttpResponseStatus status = mapped(resp.rsc);
@@ -98,6 +115,156 @@ public class M2MHttpBindings {
         response.headers().set(X_M2M_RSC, Integer.toString(m2m_responseStatusCodeType.encode(resp.rsc)));
 
         return response;
+    }
+
+    private static LocalDateTime parseDateTime(String data) {
+        if (data == null) {
+            return null;
+        }
+        return LocalDateTime.parse(data);
+    }
+
+    private static Integer parseInteger(String data) {
+        if (data == null) {
+            return null;
+        }
+        return Integer.parseInt(data);
+    }
+
+
+
+
+
+
+
+
+    /**
+     * decodeRequest HttpServerRequest into m2m_req
+     */
+    public static m2m_req decodeRequest(FullHttpRequest request)
+            throws JAXBException, MissingParameterException, MissingContentBodyException {
+        m2m_req req = new m2m_req();
+        req.op = op(request.getMethod());
+        QueryStringDecoder queryStringDecoder = new QueryStringDecoder(request.getUri());
+        Map<String, List<String>> params = queryStringDecoder.parameters();
+        req.to = queryStringDecoder.path();
+        req.rn = returnFirstOrNull(params.get("rn"));
+        String ty = returnFirstOrNull(params.get("ty"));
+        req.ty = (ty == null ? null : Integer.parseInt(ty));
+        String rset = returnFirstOrNull(params.get("rset"));
+        req.rset = (rset == null ? null : dateTime(rset));
+        String oet = returnFirstOrNull(params.get("oet"));
+        req.oet = (oet == null ? null : dateTime(oet));
+        String rt = returnFirstOrNull(params.get("rt"));
+        req.rt = (rt == null ? null : m2m_responseType.parse(rt));
+        String rp = returnFirstOrNull(params.get("rp"));
+        req.rp = (rp == null ? null : Duration.parse(rp));
+        String rc = returnFirstOrNull(params.get("rc"));
+        req.rcn = (rc == null ? null : m2m_resultContent.parse(rc));
+        String da = returnFirstOrNull(params.get("da"));
+        req.da = (da == null ? null : new m2m_ID(da));
+        req.gid = returnFirstOrNull(params.get("gid"));
+//        String fc = returnFirstOrNull(params.get("fc"));//TODO process it.
+        String drt = returnFirstOrNull(params.get("drt"));
+        req.drt = (drt == null ? null : m2m_discResType.parse(drt));
+
+        HttpHeaders headers = request.headers();
+        CharSequence host = headers.get(HOST);
+        CharSequence Accept = headers.get(ACCEPT);
+        CharSequence Content_type = request.headers().get(CONTENT_TYPE);
+        CharSequence Content_Location = request.headers().get(CONTENT_LOCATION);
+        CharSequence Content_Length = request.headers().get(CONTENT_LENGTH);
+        CharSequence Etag = request.headers().get(ETAG);
+        CharSequence From = request.headers().get(FROM);
+        req.fr = (From == null ? null : new m2m_ID(From.toString()));
+        CharSequence Location = request.headers().get(LOCATION);
+        CharSequence X_M2M_RI = request.headers().get(M2MHttpBindings.X_M2M_RI);
+        if (X_M2M_RI == null)
+            throw new MissingParameterException("missing X-M2M-RI header");
+        req.rqi = new m2m_ID(X_M2M_RI.toString());
+        CharSequence X_M2M_OT = request.headers().get(M2MHttpBindings.X_M2M_OT);
+        CharSequence X_M2M_RST = request.headers().get(M2MHttpBindings.X_M2M_RST);
+        CharSequence X_M2M_ECT = request.headers().get(M2MHttpBindings.X_M2M_ECT);
+        CharSequence X_M2M_ECN = request.headers().get(M2MHttpBindings.X_M2M_ECN);
+        CharSequence X_M2M_RSC = request.headers().get(M2MHttpBindings.X_M2M_RSC);
+
+        ByteBuf data = request.content();
+        if (data.isReadable()) {
+            req.pc = (m2m_primitiveContentType) unmarshaller.get().unmarshal(new ByteBufInputStream(data));
+        }
+
+        return req;
+    }
+
+    /**
+     * decodeRequest HttpServerRequest into m2m_req
+     */
+    public static m2m_rsp decodeResponse(FullHttpResponse response) throws JAXBException, MissingParameterException, MissingContentBodyException {
+        m2m_rsp resp = new m2m_rsp();
+
+        HttpHeaders headers = response.headers();
+        CharSequence host = headers.get(HOST);
+        CharSequence Accept = headers.get(ACCEPT);
+        CharSequence Content_type = response.headers().get(CONTENT_TYPE);
+        CharSequence Content_Location = response.headers().get(CONTENT_LOCATION);
+        CharSequence Content_Length = response.headers().get(CONTENT_LENGTH);
+        CharSequence Etag = response.headers().get(ETAG);
+        CharSequence From = response.headers().get(FROM);
+        CharSequence Location = response.headers().get(LOCATION);
+
+        CharSequence X_M2M_RI = response.headers().get(M2MHttpBindings.X_M2M_RI);
+        if (X_M2M_RI == null)
+            throw new MissingParameterException("missing X-M2M-RI header");
+        resp.rqi = new m2m_ID(X_M2M_RI.toString());
+        CharSequence X_M2M_OT = response.headers().get(M2MHttpBindings.X_M2M_OT);
+        CharSequence X_M2M_RST = response.headers().get(M2MHttpBindings.X_M2M_RST);
+        CharSequence X_M2M_ECT = response.headers().get(M2MHttpBindings.X_M2M_ECT);
+        CharSequence X_M2M_ECN = response.headers().get(M2MHttpBindings.X_M2M_ECN);
+        CharSequence X_M2M_RSC = response.headers().get(M2MHttpBindings.X_M2M_RSC);
+        resp.rsc = m2m_responseStatusCodeType.decode(X_M2M_RSC.toString());
+        ByteBuf data = response.content();
+        if (data.isReadable()) {
+            resp.pc = (m2m_primitiveContentType) unmarshaller.get().unmarshal(new ByteBufInputStream(data));
+        }
+
+        return resp;
+    }
+
+    private static Date dateTime(String v) {
+        try {
+            return Date.from(LocalDateTime.parse(v, DateTimeFormatter.ISO_LOCAL_DATE_TIME).toInstant(ZoneOffset.UTC));
+        } catch (DateTimeParseException e) {
+            return null;
+        }
+    }
+
+    private static String returnFirstOrNull(List<String> list) {
+        if (list == null || list.isEmpty()) return null;
+        return list.listIterator().next();
+    }
+
+    public static HttpMethod method(m2m_operation op) {
+        switch (op) {
+            case Create:
+                return POST;
+            case Retrieve:
+                return GET;
+            case Update:
+                return PUT;
+            case Delete:
+                return DELETE;
+            case Notify:
+                return PUT;
+            default:
+                return PUT;
+        }
+    }
+
+    private static m2m_operation op(HttpMethod method) {
+        return method.equals(POST) ? Create :
+                method.equals(GET) ? Retrieve :
+                        method.equals(PUT) ? Update :
+                                method.equals(DELETE) ? Delete : null;
     }
 
     private static HttpResponseStatus mapped(m2m_responseStatusCodeType responseStatusCode) {
@@ -145,86 +312,4 @@ public class M2MHttpBindings {
         }
         return BAD_REQUEST;
     }
-
-    /**
-     * decodeRequest HttpServerRequest into m2m_req
-     */
-    public static m2m_req decodeRequest(FullHttpRequest request) throws JAXBException, MissingParameterException, MissingContentBodyException {
-        m2m_req req = new m2m_req();
-        req.op = op(request.getMethod());
-        QueryStringDecoder queryStringDecoder = new QueryStringDecoder(request.getUri());
-        Map<String, List<String>> params = queryStringDecoder.parameters();
-        req.to = queryStringDecoder.path();
-        req.nm = returnFirstOrNull(params.get("nm"));
-        String ty = returnFirstOrNull(params.get("ty"));
-        if (ty == null && req.op == Create)
-            throw new MissingParameterException("create operation needs ty param");
-        req.ty = (ty == null ? null : Integer.parseInt(ty));
-        String rset = returnFirstOrNull(params.get("rset"));
-        req.rset = (rset == null ? null : dateTime(rset));
-        String oet = returnFirstOrNull(params.get("oet"));
-        req.oet = (oet == null ? null : dateTime(oet));
-        String rt = returnFirstOrNull(params.get("rt"));
-        req.rt = (rt == null ? null : m2m_responseType.parse(rt));
-        String rp = returnFirstOrNull(params.get("rp"));
-        req.rp = (rp == null ? null : Duration.parse(rp));
-        String rc = returnFirstOrNull(params.get("rc"));
-        req.rcn = (rc == null ? null : m2m_resultContent.parse(rc));
-        String da = returnFirstOrNull(params.get("da"));
-        req.da = (da == null ? null : new m2m_ID(da));
-        req.gid = returnFirstOrNull(params.get("gid"));
-        String fc = returnFirstOrNull(params.get("fc"));//TODO process it.
-        String drt = returnFirstOrNull(params.get("drt"));
-        req.drt = (drt == null ? null : m2m_discResType.parse(drt));
-
-        HttpHeaders headers = request.headers();
-        CharSequence host = headers.get(HOST);
-        CharSequence Accept = headers.get(ACCEPT);
-        CharSequence Content_type = request.headers().get(CONTENT_TYPE);
-        CharSequence Content_Location = request.headers().get(CONTENT_LOCATION);
-        CharSequence Content_Length = request.headers().get(CONTENT_LENGTH);
-        CharSequence Etag = request.headers().get(ETAG);
-        CharSequence From = request.headers().get(FROM);
-        req.fr = (From == null ? null : new m2m_ID(From.toString()));
-        CharSequence Location = request.headers().get(LOCATION);
-        CharSequence X_M2M_RI = request.headers().get(M2MHttpBindings.X_M2M_RI);
-        if (X_M2M_RI == null)
-            throw new MissingParameterException("missing X-M2M-RI header");
-        req.rqi = new m2m_ID(X_M2M_RI.toString());
-        CharSequence X_M2M_OT = request.headers().get(M2MHttpBindings.X_M2M_OT);
-        CharSequence X_M2M_RST = request.headers().get(M2MHttpBindings.X_M2M_RST);
-        CharSequence X_M2M_ECT = request.headers().get(M2MHttpBindings.X_M2M_ECT);
-        CharSequence X_M2M_ECN = request.headers().get(M2MHttpBindings.X_M2M_ECN);
-        CharSequence X_M2M_RSC = request.headers().get(M2MHttpBindings.X_M2M_RSC);
-
-        ByteBuf data = request.content();
-        if (data.isReadable()) {
-            req.pc = (m2m_primitiveContentType) unmarshaller.get().unmarshal(new ByteBufInputStream(data));
-        } else if (req.op == Create || req.op == Update) {
-            throw new MissingContentBodyException("Create/Update operation needs pc body!");
-        }
-
-        return req;
-    }
-
-    private static String returnFirstOrNull(List<String> list) {
-        if (list == null || list.isEmpty()) return null;
-        return list.listIterator().next();
-    }
-
-    private static Date dateTime(String v) {
-        try {
-            return Date.from(LocalDateTime.parse(v, DateTimeFormatter.ISO_LOCAL_DATE_TIME).toInstant(ZoneOffset.UTC));
-        } catch (DateTimeParseException e) {
-            return null;
-        }
-    }
-
-    private static m2m_operation op(HttpMethod method) {
-        return method.equals(POST) ? Create :
-                method.equals(GET) ? Retrieve :
-                        method.equals(PUT) ? Update :
-                                method.equals(DELETE) ? Delete : null;
-    }
-
 }

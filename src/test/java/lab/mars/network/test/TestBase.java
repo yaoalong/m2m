@@ -4,12 +4,21 @@ import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import lab.mars.m2m.protocol.primitive.m2m_primitiveContentType;
+import lab.mars.m2m.protocol.primitive.m2m_req;
+import lab.mars.m2m.protocol.primitive.m2m_rsp;
+import lab.mars.m2m.protocol.resource.m2m_AE;
 import lab.mars.network.NetworkEvent;
 import lab.mars.network.client.HttpClient;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.CountDownLatch;
@@ -24,9 +33,41 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 public class TestBase {
     protected HttpClient client;
     String path = "/cse/ae";
+    JAXBContext jc = null;
+    private ThreadLocal<Marshaller> marshaller;
+    private ThreadLocal<Unmarshaller> unmarshaller;
 
     @Before
     public void setUp() {
+        marshaller = new ThreadLocal<Marshaller>() {
+            @Override
+            public Marshaller initialValue() {
+                try {
+                    Marshaller marshaller = jc.createMarshaller();
+                    marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+                    return marshaller;
+                } catch (JAXBException e) {
+                    e.printStackTrace();
+                }
+                return null;
+            }
+        };
+        unmarshaller = new ThreadLocal<Unmarshaller>() {
+            @Override
+            public Unmarshaller initialValue() {
+                try {
+                    return jc.createUnmarshaller();
+                } catch (JAXBException e) {
+                    e.printStackTrace();
+                }
+                return null;
+            }
+        };
+        try {
+            jc = JAXBContext.newInstance(m2m_primitiveContentType.class, m2m_req.class, m2m_rsp.class);
+        } catch (JAXBException e) {
+            e.printStackTrace();
+        }
         client = new HttpClient();
     }
 
@@ -107,6 +148,18 @@ public class TestBase {
                 });
 
         latchNami.await();
+    }
+
+    @Test
+    public void createAE() throws Exception {
+
+        m2m_primitiveContentType m2m_primitiveContentType = new m2m_primitiveContentType();
+        StringWriter sw = new StringWriter();
+        m2m_AE rsp = new m2m_AE();
+        m2m_primitiveContentType.value = rsp;
+        marshaller.get().marshal(m2m_primitiveContentType, sw);
+        String value = sw.toString();
+        testCreate(path, value, OK);//创建一个A
     }
 
 }
