@@ -35,6 +35,7 @@ public class TestBase {
     public void test() throws Exception {
         testDelete("dd", OK);
     }
+    @Test
     public void testCreate() throws Exception {
         testCreate("/ae","aa",OK);
     }
