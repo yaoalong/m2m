@@ -25,7 +25,7 @@ public class OneM2MClient
     public void setData(String path,byte[] data){
         oneM2m.setData(path,data);
     }
-    public String getData(String path){
+    public byte[] getData(String path){
         return oneM2m.getData(path);
     }
 

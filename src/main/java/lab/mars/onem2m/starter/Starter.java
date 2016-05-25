@@ -15,7 +15,7 @@ public class Starter {
         this.oneM2MServer=oneM2MServer;
     }
     public static void main(String args[]){
-        Starter starter=new Starter("192.168.10.131:2184,192.168.10.131:2185");
+        Starter starter=new Starter("192.168.10.131:2183,192.168.10.131:2184,192.168.10.131:2185");
         starter.start();
     }
     public void start(){

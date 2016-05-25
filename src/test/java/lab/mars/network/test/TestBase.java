@@ -4,12 +4,16 @@ import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import lab.mars.m2m.protocol.common.m2m_childResourceRef;
 import lab.mars.m2m.protocol.primitive.m2m_primitiveContentType;
 import lab.mars.m2m.protocol.primitive.m2m_req;
 import lab.mars.m2m.protocol.primitive.m2m_rsp;
 import lab.mars.m2m.protocol.resource.m2m_AE;
 import lab.mars.network.NetworkEvent;
 import lab.mars.network.client.HttpClient;
+import lab.mars.network.http.M2MHttpBindings;
+import lab.mars.network.http.MissingContentBodyException;
+import lab.mars.network.http.MissingParameterException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -21,6 +25,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.Charset;
 import java.util.concurrent.CountDownLatch;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
@@ -78,12 +83,13 @@ public class TestBase {
 
     @Test
     public void testCreate() throws Exception {
-        testCreate("/ae", "aa", OK);
+      createAE();
     }
 
     @Test
     public void testRetrieve() throws Exception {
-        testRetrieve("/ae", OK);
+      String ss=  testRetrieve("/ae", OK);
+        System.out.println("result"+ss);
     }
 
     @Test
@@ -99,32 +105,35 @@ public class TestBase {
         testRequest(HttpMethod.DELETE, path, statusCode, null, null);
     }
 
-    protected void testRetrieve(String path, HttpResponseStatus statusCode) throws Exception {
-        testRequest(HttpMethod.GET, path, statusCode, null, null);
+    protected String testRetrieve(String path, HttpResponseStatus statusCode) throws Exception {
+        m2m_rsp m_rsp=testRequest(HttpMethod.GET, path, statusCode, null, null);
+        if (m_rsp.pc != null && m_rsp.pc.value instanceof m2m_AE)
+            return ((m2m_AE) m_rsp.pc.value).api;
+        return null;
     }
 
     protected void testUpdate(String path, String value, HttpResponseStatus statusCode) throws Exception {
         testRequest(HttpMethod.PUT, path, statusCode, null, value);
     }
 
-    public void testRequest(HttpMethod method, String path, HttpResponseStatus statusCode, String contentPath, String requestBody) throws Exception {
+    public m2m_rsp testRequest(HttpMethod method, String path, HttpResponseStatus statusCode, String contentPath, String requestBody) throws Exception {
 
         String[][] req_headers = new String[][]{
                 {"Host", "/cse01"},
                 {"Accept", "application/onem2m-resource+xml"},
                 {"Content-type", "application/onem2m-resource+xml"},
                 {"From", "/AE01"},
-                {"X-M2M-RI", "00001"},
+                {"X-M2M-RI", "00002"},
         };
         //   String requestBody = contentPath != null ? IOUtils.toString(Thread.currentThread().getContextClassLoader().getResource(contentPath)) : null;
         String[][] rsp_headers = new String[][]{
 //				{"X-M2M-RI", "00001"},
         };
 
-        testRequest(method, path, req_headers, requestBody, statusCode, rsp_headers);
+        return testRequest(method, path, req_headers, requestBody, statusCode, rsp_headers);
     }
 
-    protected void testRequest(
+    protected m2m_rsp testRequest(
             HttpMethod method,
             String path,
             String[][] req_headers,
@@ -135,19 +144,20 @@ public class TestBase {
         CountDownLatch latchNami = new CountDownLatch(1);
         URI uri = new URI("http://localhost:8080");
         HttpRequest httpRequest = HttpClient.makeRequest(method, path, req_headers, requestBody);
-        // m2m_rsp m_rsp[] = new m2m_rsp[1];
+         m2m_rsp m_rsp[] = new m2m_rsp[1];
         client.requestAsync(uri, httpRequest)
                 .<NetworkEvent<FullHttpResponse>>then(resp -> {
                     System.out.println(resp.toString());
-//                    Assert.assertEquals(status, resp.msg.getStatus());
-//                    if (rsp_headers != null)
-//                        for (String[] header : rsp_headers)
-//                            Assert.assertEquals(header[1], resp.msg.headers().get(header[0]));
-
+                    try {
+                        m_rsp[0] = M2MHttpBindings.decodeResponse(resp.msg);
+                    } catch (JAXBException | MissingParameterException | MissingContentBodyException e) {
+                        e.printStackTrace();
+                    }
                     latchNami.countDown();
                 });
 
         latchNami.await();
+        return m_rsp[0];
     }
 
     @Test
@@ -156,7 +166,9 @@ public class TestBase {
         m2m_primitiveContentType m2m_primitiveContentType = new m2m_primitiveContentType();
         StringWriter sw = new StringWriter();
         m2m_AE rsp = new m2m_AE();
+        rsp.api="sss";
         m2m_primitiveContentType.value = rsp;
+
         marshaller.get().marshal(m2m_primitiveContentType, sw);
         String value = sw.toString();
         testCreate(path, value, OK);//创建一个A
