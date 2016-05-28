@@ -4,7 +4,6 @@ import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import lab.mars.m2m.protocol.common.m2m_childResourceRef;
 import lab.mars.m2m.protocol.primitive.m2m_primitiveContentType;
 import lab.mars.m2m.protocol.primitive.m2m_req;
 import lab.mars.m2m.protocol.primitive.m2m_rsp;
@@ -25,7 +24,6 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.Charset;
 import java.util.concurrent.CountDownLatch;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
@@ -76,26 +74,8 @@ public class TestBase {
         client = new HttpClient();
     }
 
-    @Test
-    public void test() throws Exception {
-        testDelete("dd", OK);
-    }
 
-    @Test
-    public void testCreate() throws Exception {
-      createAE();
-    }
 
-    @Test
-    public void testRetrieve() throws Exception {
-      String ss=  testRetrieve("/ae", OK);
-        System.out.println("result"+ss);
-    }
-
-    @Test
-    public void testUpdate() throws Exception {
-        testUpdate("path", "value", OK);
-    }
 
     protected void testCreate(String path, String value, HttpResponseStatus statusCode) throws Exception {
         testRequest(HttpMethod.POST, path, statusCode, null, value);
@@ -106,7 +86,7 @@ public class TestBase {
     }
 
     protected String testRetrieve(String path, HttpResponseStatus statusCode) throws Exception {
-        m2m_rsp m_rsp=testRequest(HttpMethod.GET, path, statusCode, null, null);
+        m2m_rsp m_rsp = testRequest(HttpMethod.GET, path, statusCode, null, null);
         if (m_rsp.pc != null && m_rsp.pc.value instanceof m2m_AE)
             return ((m2m_AE) m_rsp.pc.value).api;
         return null;
@@ -144,7 +124,7 @@ public class TestBase {
         CountDownLatch latchNami = new CountDownLatch(1);
         URI uri = new URI("http://localhost:8080");
         HttpRequest httpRequest = HttpClient.makeRequest(method, path, req_headers, requestBody);
-         m2m_rsp m_rsp[] = new m2m_rsp[1];
+        m2m_rsp m_rsp[] = new m2m_rsp[1];
         client.requestAsync(uri, httpRequest)
                 .<NetworkEvent<FullHttpResponse>>then(resp -> {
                     System.out.println(resp.toString());
@@ -166,12 +146,33 @@ public class TestBase {
         m2m_primitiveContentType m2m_primitiveContentType = new m2m_primitiveContentType();
         StringWriter sw = new StringWriter();
         m2m_AE rsp = new m2m_AE();
-        rsp.api="sss";
+        rsp.api = "sss";
         m2m_primitiveContentType.value = rsp;
 
         marshaller.get().marshal(m2m_primitiveContentType, sw);
         String value = sw.toString();
         testCreate(path, value, OK);//创建一个A
     }
+    @Test
+    public void testDeleteAE() throws Exception {
+        testDelete("dd", OK);
+    }
 
+    @Test
+    public void testRetrieveAE() throws Exception {
+        String ss = testRetrieve("/ae", OK);
+        System.out.println("result" + ss);
+    }
+    @Test
+    public void testUpdateAE() throws Exception {
+        m2m_primitiveContentType m2m_primitiveContentType = new m2m_primitiveContentType();
+        StringWriter sw = new StringWriter();
+        m2m_AE rsp = new m2m_AE();
+        rsp.api = "fff";
+        m2m_primitiveContentType.value = rsp;
+
+        marshaller.get().marshal(m2m_primitiveContentType, sw);
+        String value = sw.toString();
+        testUpdate(path, value, OK);
+    }
 }

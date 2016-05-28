@@ -50,7 +50,7 @@
         <dependency>
             <groupId>lab.mars</groupId>
             <artifactId>nami-core</artifactId>
-            <version>3.5.8</version>
+            <version>3.5.10</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

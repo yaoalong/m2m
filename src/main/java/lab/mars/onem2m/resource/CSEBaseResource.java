@@ -1,13 +1,10 @@
 package lab.mars.onem2m.resource;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufInputStream;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import lab.mars.ds.reflection.ResourceReflection;
 import lab.mars.m2m.protocol.common.m2m_ID;
-import lab.mars.m2m.protocol.common.m2m_childResourceRef;
 import lab.mars.m2m.protocol.enumeration.m2m_operation;
 import lab.mars.m2m.protocol.enumeration.m2m_responseStatusCodeType;
 import lab.mars.m2m.protocol.primitive.m2m_primitiveContentType;
@@ -34,7 +31,9 @@ import static lab.mars.network.http.M2MHttpBindings.encodeResponse;
  */
 public class CSEBaseResource implements M2mResource {
     OneM2MClient oneM2MClient;
-
+    JAXBContext jc = null;
+    private ThreadLocal<Marshaller> marshaller;
+    private ThreadLocal<Unmarshaller> unmarshaller;
     public CSEBaseResource(String client) {
         oneM2MClient = new OneM2MClient(client);
         marshaller = new ThreadLocal<Marshaller>() {
@@ -67,9 +66,7 @@ public class CSEBaseResource implements M2mResource {
             e.printStackTrace();
         }
     }
-    private ThreadLocal<Marshaller> marshaller;
-    private ThreadLocal<Unmarshaller> unmarshaller;
-    JAXBContext jc = null;
+
     @Override
     public void processRequest(NetworkEvent<FullHttpRequest> m) {
         m2m_req req = null;
@@ -101,19 +98,22 @@ public class CSEBaseResource implements M2mResource {
                 }
                 break;
             case Retrieve:
-                byte[] dataResult= oneM2MClient.getData(id);
-
-                m2m_rsp.pc=new m2m_primitiveContentType();
-
-                m2m_rsp.pc.value=ResourceReflection.deserializeKryo(dataResult);
+                byte[] dataResult = oneM2MClient.getData(id);
+                m2m_rsp.pc = new m2m_primitiveContentType();
+                m2m_rsp.pc.value = ResourceReflection.deserializeKryo(dataResult);
                 break;
             case Update:
                 value = req.pc.value;
                 result = ResourceReflection.serializeKryo(value);
+                System.out.println("data:"+result.length);
                 oneM2MClient.setData(id, result);
+                System.out.println("result:"+id);
                 break;
             case Delete:
                 oneM2MClient.delete(id);
+                break;
+            default:
+                System.out.println("Err"+op);
                 break;
         }
         System.out.println("接收");
