@@ -14,19 +14,15 @@ import lab.mars.network.http.M2MHttpBindings;
 import lab.mars.network.http.MissingContentBodyException;
 import lab.mars.network.http.MissingParameterException;
 import org.junit.Before;
-import org.junit.Test;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.CountDownLatch;
-
-import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 /**
  * Author:yaoalong.
@@ -35,10 +31,10 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
  */
 public class TestBase {
     protected HttpClient client;
-    String path = "/cse/ae";
+    protected ThreadLocal<Marshaller> marshaller;
+    protected ThreadLocal<Unmarshaller> unmarshaller;
+    String path = "/cse/ae1";
     JAXBContext jc = null;
-    private ThreadLocal<Marshaller> marshaller;
-    private ThreadLocal<Unmarshaller> unmarshaller;
 
     @Before
     public void setUp() {
@@ -73,8 +69,6 @@ public class TestBase {
         }
         client = new HttpClient();
     }
-
-
 
 
     protected void testCreate(String path, String value, HttpResponseStatus statusCode) throws Exception {
@@ -127,7 +121,6 @@ public class TestBase {
         m2m_rsp m_rsp[] = new m2m_rsp[1];
         client.requestAsync(uri, httpRequest)
                 .<NetworkEvent<FullHttpResponse>>then(resp -> {
-                    System.out.println(resp.toString());
                     try {
                         m_rsp[0] = M2MHttpBindings.decodeResponse(resp.msg);
                     } catch (JAXBException | MissingParameterException | MissingContentBodyException e) {
@@ -140,39 +133,4 @@ public class TestBase {
         return m_rsp[0];
     }
 
-    @Test
-    public void createAE() throws Exception {
-
-        m2m_primitiveContentType m2m_primitiveContentType = new m2m_primitiveContentType();
-        StringWriter sw = new StringWriter();
-        m2m_AE rsp = new m2m_AE();
-        rsp.api = "sss";
-        m2m_primitiveContentType.value = rsp;
-
-        marshaller.get().marshal(m2m_primitiveContentType, sw);
-        String value = sw.toString();
-        testCreate(path, value, OK);//创建一个A
-    }
-    @Test
-    public void testDeleteAE() throws Exception {
-        testDelete("dd", OK);
-    }
-
-    @Test
-    public void testRetrieveAE() throws Exception {
-        String ss = testRetrieve("/ae", OK);
-        System.out.println("result" + ss);
-    }
-    @Test
-    public void testUpdateAE() throws Exception {
-        m2m_primitiveContentType m2m_primitiveContentType = new m2m_primitiveContentType();
-        StringWriter sw = new StringWriter();
-        m2m_AE rsp = new m2m_AE();
-        rsp.api = "fff";
-        m2m_primitiveContentType.value = rsp;
-
-        marshaller.get().marshal(m2m_primitiveContentType, sw);
-        String value = sw.toString();
-        testUpdate(path, value, OK);
-    }
 }

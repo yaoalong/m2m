@@ -9,23 +9,26 @@ import java.io.IOException;
  * Date:2016/5/24.
  * Email:yaoalong@foxmail.com
  */
-public class OneM2MClient
-{
-    String client;
+public class OneM2MClient {
     OneM2m oneM2m;
-    public OneM2MClient(String client){
-        oneM2m=new OneM2m(client);
+
+    public OneM2MClient(String client) {
+        oneM2m = new OneM2m(client);
     }
-    public void create(String path,byte[] data) throws IOException {
-        oneM2m.create(path,data);
+
+    public void create(String path, byte[] data) throws IOException {
+        oneM2m.create(path, data);
     }
-    public void delete(String path){
+
+    public void delete(String path) {
         oneM2m.delete(path);
     }
-    public void setData(String path,byte[] data){
-        oneM2m.setData(path,data);
+
+    public void setData(String path, byte[] data) {
+        oneM2m.setData(path, data);
     }
-    public byte[] getData(String path){
+
+    public byte[] getData(String path) {
         return oneM2m.getData(path);
     }
 

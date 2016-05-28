@@ -81,8 +81,9 @@ public class CSEBaseResource implements M2mResource {
             e.printStackTrace();
         }
         m2m_operation op = req.op;
-        m2m_ID m2m_id = req.rqi;
-        String id = m2m_id.value;
+        m2m_ID m2m_id = req.fr;
+        String id =req.to;
+        System.out.println("id"+id);
         Object value;
         byte[] result;
         m2m_rsp m2m_rsp = new m2m_rsp();
@@ -111,9 +112,6 @@ public class CSEBaseResource implements M2mResource {
                 break;
             case Delete:
                 oneM2MClient.delete(id);
-                break;
-            default:
-                System.out.println("Err"+op);
                 break;
         }
         System.out.println("接收");
