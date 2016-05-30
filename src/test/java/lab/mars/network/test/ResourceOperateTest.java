@@ -32,7 +32,7 @@ public class ResourceOperateTest extends TestBase {
 
     @Test
     public void testDeleteAE() throws Exception {
-        testDelete("/cse/ae1", OK);
+        testDelete(path, OK);
     }
 
     @Test

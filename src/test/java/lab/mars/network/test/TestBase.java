@@ -13,6 +13,7 @@ import lab.mars.network.client.HttpClient;
 import lab.mars.network.http.M2MHttpBindings;
 import lab.mars.network.http.MissingContentBodyException;
 import lab.mars.network.http.MissingParameterException;
+import org.junit.Assert;
 import org.junit.Before;
 
 import javax.xml.bind.JAXBContext;
@@ -122,7 +123,9 @@ public class TestBase {
         client.requestAsync(uri, httpRequest)
                 .<NetworkEvent<FullHttpResponse>>then(resp -> {
                     try {
+                        Assert.assertEquals(status, resp.msg.getStatus());
                         m_rsp[0] = M2MHttpBindings.decodeResponse(resp.msg);
+
                     } catch (JAXBException | MissingParameterException | MissingContentBodyException e) {
                         e.printStackTrace();
                     }
