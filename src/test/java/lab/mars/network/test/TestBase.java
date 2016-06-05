@@ -34,7 +34,7 @@ public class TestBase {
     protected HttpClient client;
     protected ThreadLocal<Marshaller> marshaller;
     protected ThreadLocal<Unmarshaller> unmarshaller;
-    String path = "/cse/ae1";
+    String path = "/cse/1ae";
     JAXBContext jc = null;
 
     @Before
@@ -117,7 +117,7 @@ public class TestBase {
             String[][] rsp_headers) throws InterruptedException, IOException, URISyntaxException {
 
         CountDownLatch latchNami = new CountDownLatch(1);
-        URI uri = new URI("http://localhost:8080");
+        URI uri = new URI("http://localhost:8088");
         HttpRequest httpRequest = HttpClient.makeRequest(method, path, req_headers, requestBody);
         m2m_rsp m_rsp[] = new m2m_rsp[1];
         client.requestAsync(uri, httpRequest)

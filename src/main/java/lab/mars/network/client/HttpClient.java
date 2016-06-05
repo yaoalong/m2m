@@ -88,7 +88,6 @@ public class HttpClient
                                 .addLast(new HttpObjectAggregator(1048576))
                                 .addLast(new SimpleChannelInboundHandler<FullHttpResponse>(false) {
                                     @Override protected void channelRead0(ChannelHandlerContext ctx, FullHttpResponse msg) throws Exception {
-                                        System.out.println("收到");
                                        async.onEvent(new NetworkEvent<>(ctx, msg));
                                     }
 
@@ -103,7 +102,6 @@ public class HttpClient
                 .addListener((ChannelFuture channelFuture) -> {
                     Channel ch = channelFuture.channel();
                     if (channelFuture.isSuccess()) {
-                        System.out.println("放");
                         ch.writeAndFlush(request);
                     }else
                         async.onEvent(null);

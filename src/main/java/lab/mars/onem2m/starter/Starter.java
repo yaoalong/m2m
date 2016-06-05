@@ -23,6 +23,6 @@ public class Starter {
 
     public void start() {
         Nami.resources.put("csebase", new CSEBaseResource(oneM2MServer));
-        new HttpServer().bindAsync("localhost", 8080);
+        new HttpServer().bindAsync("localhost", 8088);
     }
 }
